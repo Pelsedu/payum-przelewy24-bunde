@@ -2,6 +2,7 @@
 
 namespace arteneo\PayumPrzelewy24Bundle\Action;
 
+use arteneo\PayumPrzelewy24Bundle\Api\ApiAwareTrait;
 use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\Common\Persistence\ObjectRepository;
 use Payum\Core\Action\ActionInterface;
@@ -12,7 +13,6 @@ use Payum\Core\GatewayAwareInterface;
 use Payum\Core\GatewayAwareTrait;
 use Payum\Core\Model\PaymentInterface;
 use Payum\Core\Request\GetHumanStatus;
-use arteneo\PayumPrzelewy24Bundle\Api\ApiAwareTrait;
 
 class Notify implements ActionInterface, ApiAwareInterface, GatewayAwareInterface
 {
@@ -42,22 +42,18 @@ class Notify implements ActionInterface, ApiAwareInterface, GatewayAwareInterfac
         $model = $request->getModel();
 
         /** @var Payment $payment */
-        $payment = $this->objectRepository->findOneBy(['number' => $model['p24_session_id']]);
+        $payment = $this->objectRepository->findOneBy(['number' => $model['sessionId']]);
 
-        $model['p24_kwota'] = $payment->getTotalAmount();
+        $model['amount'] = $payment->getTotalAmount();
+        $model['currency'] = $payment->getCurrencyCode();
 
-        if (isset($model['p24_error_code'])) {
-            if ('err104' == $model['p24_error_code']) {
-                $this->updatePaymentStatus($payment, GetHumanStatus::STATUS_PENDING);
-
-                return;
-            }
+        if (!$this->api->verifyPaymentNotification($model)) {
             $this->updatePaymentStatus($payment, GetHumanStatus::STATUS_FAILED);
 
             return;
         }
 
-        $state = $this->api->getPaymentStatus($model);
+        $state = $this->api->handlePaymentNotification($model);
 
         $details = array_merge($payment->getDetails(), ['state' => $state]);
         $payment->setDetails($details);

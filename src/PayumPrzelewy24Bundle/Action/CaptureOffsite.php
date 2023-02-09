@@ -2,6 +2,7 @@
 
 namespace arteneo\PayumPrzelewy24Bundle\Action;
 
+use arteneo\PayumPrzelewy24Bundle\Api\ApiAwareTrait;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
@@ -9,13 +10,12 @@ use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\GatewayAwareInterface;
 use Payum\Core\GatewayAwareTrait;
 use Payum\Core\Model\PaymentInterface;
-use Payum\Core\Reply\HttpPostRedirect;
+use Payum\Core\Reply\HttpRedirect;
 use Payum\Core\Request\Capture;
 use Payum\Core\Request\GetHttpRequest;
 use Payum\Core\Request\GetHumanStatus;
 use Payum\Core\Request\Notify;
 use Payum\Core\Security\GenericTokenFactoryAwareTrait;
-use arteneo\PayumPrzelewy24Bundle\Api\ApiAwareTrait;
 
 class CaptureOffsite implements ApiAwareInterface, ActionInterface, GatewayAwareInterface
 {
@@ -26,7 +26,7 @@ class CaptureOffsite implements ApiAwareInterface, ActionInterface, GatewayAware
     /**
      * @param mixed $request
      *
-     * @throws \Payum\Core\Exception\RequestNotSupportedException if the action dose not support the request.
+     * @throws \Payum\Core\Exception\RequestNotSupportedException if the action dose not support the request
      */
     public function execute($request)
     {
@@ -38,19 +38,19 @@ class CaptureOffsite implements ApiAwareInterface, ActionInterface, GatewayAware
         if ($httpRequest->request) {
             $model = new ArrayObject($httpRequest->request);
             $this->gateway->execute(new Notify($model));
-        }
-        else {
-            throw new HttpPostRedirect(
-                $this->api->getNewPaymentUrl(),
-                $this->api->buildFormParamsForPostRequest($request->getFirstModel(), $request->getToken())
-            );
+        } else {
+            $token = $this->api->registerTransaction($request->getFirstModel(), $request->getToken());
+            
+            $url = $this->api->getTransactionRedirect($token);
+
+            throw new HttpRedirect($url);
         }
     }
 
     /**
      * @param GetHumanStatus $request
      *
-     * @return boolean
+     * @return bool
      */
     public function supports($request)
     {

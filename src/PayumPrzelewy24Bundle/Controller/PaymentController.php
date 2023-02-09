@@ -2,13 +2,12 @@
 
 namespace arteneo\PayumPrzelewy24Bundle\Controller;
 
+use arteneo\PayumPrzelewy24Bundle\Entity\Payment;
 use FOS\RestBundle\Controller\Annotations\Route;
 use Payum\Bundle\PayumBundle\Controller\PayumController;
-use Payum\Core\Request\GetHumanStatus;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use arteneo\PayumPrzelewy24Bundle\Entity\Payment;
 
 /**
  * @Route("/payment")
@@ -18,12 +17,11 @@ class PaymentController extends PayumController
     /**
      * @Route("/create", name="create_payment")
      * @Method("GET")
-     * @param Request $request
+     *
      * @return \Symfony\Component\HttpFoundation\RedirectResponse
      */
     public function createPayment(Request $request)
     {
-
         $storage = $this->get('payum')->getStorage(Payment::class);
 
         /** @var Payment $payment */
@@ -36,10 +34,11 @@ class PaymentController extends PayumController
         $payment->setClientEmail($this->getUser()->getEmail());
 
         $payment->setDetails([
-            'p24_session_id' => $payment->getNumber(),
-            'p24_opis' => $payment->getDescription(),
-            'p24_kwota' => $payment->getTotalAmount(),
-            'p24_email' => $payment->getClientEmail()
+            'sessionId' => $payment->getNumber(),
+            'description' => $payment->getDescription(),
+            'amount' => $payment->getTotalAmount(),
+            'currency' => $payment->getCurrencyCode(),
+            'email' => $payment->getClientEmail(),
         ]);
 
         $storage->update($payment);
@@ -55,7 +54,7 @@ class PaymentController extends PayumController
 
     /**
      * @Route("/done", name="payment_done")
-     * @param Request $request
+     *
      * @return Response
      */
     public function captureDoneAction(Request $request)
@@ -67,7 +66,7 @@ class PaymentController extends PayumController
         $model = $this->get('payum')->getStorage($identity->getClass())->find($identity);
 
         return new JsonResponse([
-           'status' => $model->getStatus()
+           'status' => $model->getStatus(),
         ]);
     }
 }

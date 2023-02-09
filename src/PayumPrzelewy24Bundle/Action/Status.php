@@ -2,18 +2,18 @@
 
 namespace arteneo\PayumPrzelewy24Bundle\Action;
 
+use arteneo\PayumPrzelewy24Bundle\Api\ApiClient;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Model\PaymentInterface;
 use Payum\Core\Request\GetHumanStatus;
-use arteneo\PayumPrzelewy24Bundle\Api\ApiClient;
 
 class Status implements ActionInterface
 {
     /**
      * @param mixed $request
      *
-     * @throws \Payum\Core\Exception\RequestNotSupportedException if the action dose not support the request.
+     * @throws \Payum\Core\Exception\RequestNotSupportedException if the action dose not support the request
      */
     public function execute($request)
     {
@@ -22,13 +22,9 @@ class Status implements ActionInterface
 
         $details = ArrayObject::ensureArrayObject($payment->getDetails());
 
-        if ($details['state'] == ApiClient::STATUS_SUCCESS) {
+        if (ApiClient::STATUS_SUCCESS == $details['state']) {
             $request->markCaptured();
-            return;
-        }
 
-        if ($details['state'] == ApiClient::STATUS_FAILED) {
-            $request->markFailed();
             return;
         }
 
@@ -38,7 +34,7 @@ class Status implements ActionInterface
     /**
      * @param mixed $request
      *
-     * @return boolean
+     * @return bool
      */
     public function supports($request)
     {

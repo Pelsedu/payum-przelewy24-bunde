@@ -3,24 +3,20 @@
 namespace arteneo\PayumPrzelewy24Bundle\Api;
 
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\ClientException;
 use Payum\Core\Bridge\Spl\ArrayObject;
-use Payum\Core\Security\TokenInterface;
 use Payum\Core\Model\PaymentInterface;
+use Payum\Core\Security\TokenInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-
-class ApiClient{
-
-    const STATUS_SUCCESS = 'TRUE';
-    const STATUS_FAILED = 'err00';
-
-    const CURRENCY = 'PLN';
+class ApiClient
+{
+    public const STATUS_SUCCESS = 'success';
 
     /** @var ClientInterface */
     private $httpClient;
 
     /**
-     * @param ClientInterface $httpClient
      * @param array $parameters
      */
     public function __construct(ClientInterface $httpClient, $parameters = [])
@@ -29,18 +25,73 @@ class ApiClient{
         $this->parameters = $parameters;
     }
 
-    public function getNewPaymentUrl()
+    public function getRegisterTransactionUrl()
     {
         return $this->parameters['sandbox'] ?
-            "https://sandbox.przelewy24.pl/index.php" :
-            "https://secure.przelewy24.pl/index.php";
+            'https://sandbox.przelewy24.pl/api/v1/transaction/register' :
+            'https://secure.przelewy24.pl/api/v1/transaction/register';
     }
 
     public function getStatusPaymentUrl()
     {
         return $this->parameters['sandbox'] ?
-            "https://sandbox.przelewy24.pl/transakcja.php" :
-            "https://przelewy24.pl/transakcja.php";
+        'https://sandbox.przelewy24.pl/api/v1/transaction/verify' :
+            'https://secure.przelewy24.pl/api/v1/transaction/verify';
+    }
+
+    public function getTransactionRedirect(string $token)
+    {
+        return $this->parameters['sandbox'] ?
+        'https://sandbox.przelewy24.pl/trnRequest/'.$token :
+        'https://secure.przelewy24.pl/trnRequest/'.$token;
+    }
+
+    public function getBasicAuth()
+    {
+        return [$this->parameters['clientId'], $this->parameters['clientSecret']];
+    }
+
+    public function getReturnUrl(PaymentInterface $payment, TokenInterface $token)
+    {
+        $details = $payment->getDetails();
+        if (isset($details['returnAbsoluteUrl'])) {
+            return $details['returnAbsoluteUrl'];
+        }
+
+        if (isset($details['returnUrl'])) {
+            return $this->parameters['serviceDomain'].$details['returnUrl'];
+        }
+
+        if (isset($details['returnRoute']) && isset($this->parameters['router'])) {
+            return $this->parameters['router']->generate($details['returnRoute'], ['payum_token' => $token->getHash()], UrlGeneratorInterface::ABSOLUTE_URL);
+        }
+
+        return $this->parameters['serviceDomain'].'/';
+    }
+
+    public function getStatusUrl(PaymentInterface $payment, TokenInterface $token)
+    {
+        if (isset($this->parameters['router'])) {
+            return $this->parameters['serviceDomain'].$this->parameters['router']->generate('payum_capture_do', ['payum_token' => $token->getHash()]);
+        }
+
+        return sprintf('%s/payment/capture/%s', $this->parameters['serviceDomain'], $token->getHash());
+    }
+
+    public function registerTransaction(PaymentInterface $payment, TokenInterface $token)
+    {
+        $response = $this->httpClient->request('POST', $this->getRegisterTransactionUrl(), [
+            'json' => $this->buildFormParamsForPostRequest($payment, $token),
+            'auth' => $this->getBasicAuth(),
+        ]);
+
+        $responseArray = json_decode($response->getBody()->getContents(), true);
+
+        if (isset($responseArray['data']) && isset($responseArray['data']['token'])) {
+            return $responseArray['data']['token'];
+        }
+
+        throw new \RuntimeException('Token not received from Przelewy24');
     }
 
     public function buildFormParamsForPostRequest(PaymentInterface $payment, TokenInterface $token)
@@ -48,84 +99,103 @@ class ApiClient{
         $details = $payment->getDetails();
 
         $params = [
-            'p24_session_id' => $details['p24_session_id'],
-            'p24_opis' => $details['p24_opis'],
-            'p24_id_sprzedawcy' => $this->parameters['clientId'],
-            'p24_kwota' => $details['p24_kwota'],
-            'p24_email' => $details['p24_email'],
-            'p24_return_url_ok' => sprintf('%s/payment/capture/%s', $this->parameters['returnUrl'], $token->getHash()),
-            'p24_return_url_error' => sprintf('%s/payment/capture/%s', $this->parameters['returnUrl'], $token->getHash()),
-            'p24_sign' => $this->createHashForNewPayment($details)
+            'sessionId' => $details['sessionId'],
+            'description' => $details['description'],
+            'merchantId' => $this->parameters['clientId'],
+            'posId' => $this->parameters['clientId'],
+            'country' => $this->parameters['country'],
+            'language' => $this->parameters['language'],
+            'amount' => $details['amount'],
+            'currency' => $details['currency'],
+            'email' => $details['email'],
+            'urlReturn' => $this->getReturnUrl($payment, $token),
+            'urlStatus' => $this->getStatusUrl($payment, $token),
+            'sign' => $this->createHashForRegisterTransaction($details),
         ];
 
         return $params;
     }
 
-    public function getPaymentStatus(ArrayObject $notificationResponse)
+    public function verifyPaymentNotification(ArrayObject $notificationResponse)
     {
-        if (!isset($notificationResponse['p24_session_id']) || !isset($notificationResponse['p24_order_id']) ||
-            !isset($notificationResponse['p24_kwota'])) {
-            throw new \InvalidArgumentException("Missing one of parameter.");
+        $requiredNotifications = [
+            'merchantId',
+            'posId',
+            'sessionId',
+            'amount',
+            'originAmount',
+            'currency',
+            'orderId',
+            'methodId',
+            'statement',
+            'sign',
+        ];
+
+        foreach ($requiredNotifications as $property) {
+            if (!isset($notificationResponse[$property])) {
+                return false;
+            }
         }
 
+        if ($this->createHashForNotification($notificationResponse->toUnsafeArray()) !== $notificationResponse['sign']) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function handlePaymentNotification(ArrayObject $notificationResponse)
+    {
+        if (!$this->verifyPaymentNotification($notificationResponse)) {
+            throw new \InvalidArgumentException('Response verification failed.');
+        }
+
+        $json = [
+            'merchantId' => $this->parameters['clientId'],
+            'posId' => $this->parameters['clientId'],
+            'sessionId' => $notificationResponse['sessionId'],
+            'amount' => $notificationResponse['amount'],
+            'currency' => $notificationResponse['currency'],
+            'orderId' => $notificationResponse['orderId'],
+            'sign' => $this->createHashForPaymentStatus($notificationResponse->toUnsafeArray()),
+        ];
+
         try {
-            $response = $this->httpClient->post(
-                $this->getStatusPaymentUrl(), [
-                    'form_params' => [
-                        'p24_id_sprzedawcy' => $this->parameters['clientId'],
-                        'p24_session_id' => $notificationResponse['p24_session_id'],
-                        'p24_order_id' => $notificationResponse['p24_order_id'],
-                        'p24_kwota' => $notificationResponse['p24_kwota'],
-                        'p24_sign' => $this->createHashForPaymentStatus(
-                            $notificationResponse->toUnsafeArray()
-                        )
-                    ]
-                ]
-            );
+            $response = $this->httpClient->request('PUT', $this->getStatusPaymentUrl(), [
+                'json' => $json,
+                'auth' => $this->getBasicAuth(),
+            ]);
 
-            return $this->parseResponse($response->getBody());
+            $responseArray = json_decode($response->getBody()->getContents(), true);
 
-        } catch (RequestException $requestException) {
+            if (isset($responseArray['data']) && isset($responseArray['data']['status'])) {
+                return $responseArray['data']['status'];
+            }
+
+            throw new \RuntimeException('Transaction verification response from Przelewy24 is invalid');
+        } catch (ClientException $requestException) {
             throw new \RuntimeException($requestException->getMessage());
         }
     }
 
+    private function createHashForNotification(array $details)
+    {
+        $hashString = '{"merchantId":'.$details['merchantId'].',"posId":'.$details['posId'].',"sessionId":"'.$details['sessionId'].'","amount":'.$details['amount'].',"originAmount":'.$details['originAmount'].',"currency":"'.$details['currency'].'","orderId":'.$details['orderId'].',"methodId":'.$details['methodId'].',"statement":"'.$details['statement'].'","crc":"'.$this->parameters['crc'].'"}';
+
+        return hash('sha384', $hashString);
+    }
+
     private function createHashForPaymentStatus(array $details)
     {
-        return $this->createHash(
-            $details,
-            $details['p24_order_id']
-        );
+        $hashString = '{"sessionId":"'.$details['sessionId'].'","orderId":'.$details['orderId'].',"amount":'.$details['amount'].',"currency":"'.$details['currency'].'","crc":"'.$this->parameters['crc'].'"}';
+
+        return hash('sha384', $hashString);
     }
 
-    private function createHashForNewPayment(array $details)
+    private function createHashForRegisterTransaction(array $details)
     {
-        return $this->createHash(
-            $details,
-            $this->parameters['clientId']
-        );
-    }
+        $hashString = '{"sessionId":"'.$details['sessionId'].'","merchantId":'.$this->parameters['clientId'].',"amount":'.$details['amount'].',"currency":"'.$details['currency'].'","crc":"'.$this->parameters['crc'].'"}';
 
-    private function createHash(array $details, $gatewayIdOrOrderId)
-    {
-        return md5(
-            $details['p24_session_id'] . '|' .
-            $gatewayIdOrOrderId . '|' .
-            $details['p24_kwota'] . '|' .
-            self::CURRENCY . '|' .
-            $this->parameters['clientSecret']
-        );
-    }
-
-    private function parseResponse($response)
-    {
-        $responseArray = explode("\n", $response);
-        if (count($responseArray) > 2) {
-            $code = $responseArray[2];
-        } else {
-            $code = $responseArray[1];
-        }
-
-        return $code;
+        return hash('sha384', $hashString);
     }
 }
