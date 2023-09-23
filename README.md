@@ -1,4 +1,6 @@
 # README #
+![Static Badge](https://img.shields.io/badge/PHP-8.x-000000?logo=php)
+![Static Badge](https://img.shields.io/badge/Symfony-5.4-000000?logo=symfony)
 
 1. Create services in services.yml
 ```
