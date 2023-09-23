@@ -1,10 +1,10 @@
 <?php
 
-namespace arteneo\PayumPrzelewy24Bundle\Action;
+namespace pelsedu\PayumPrzelewy24Bundle\Action;
 
-use arteneo\PayumPrzelewy24Bundle\Api\ApiAwareTrait;
-use Doctrine\Common\Persistence\ObjectManager;
-use Doctrine\Common\Persistence\ObjectRepository;
+use pelsedu\PayumPrzelewy24Bundle\Api\ApiAwareTrait;
+use Doctrine\Persistence\ObjectManager;
+use Doctrine\Persistence\ObjectRepository;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;

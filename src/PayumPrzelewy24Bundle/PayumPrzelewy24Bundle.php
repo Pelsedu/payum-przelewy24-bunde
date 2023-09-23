@@ -1,6 +1,6 @@
 <?php
 
-namespace arteneo\PayumPrzelewy24Bundle;
+namespace pelsedu\PayumPrzelewy24Bundle;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 

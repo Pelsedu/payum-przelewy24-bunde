@@ -9,15 +9,26 @@
       "email": "kontakt@umbrella.limited"
     }
   ],
+  "contributors": [
+    {
+      "name": "arteneo"
+    },
+    {
+      "name": "IT-200 Paweł Palewicz",
+      "email": "pelsedu@gmail.com"
+    }
+  ],
   "autoload": {
     "psr-4": {
       "pelsedu\\": "src/"
     }
   },
   "require": {
-    "sensio/framework-extra-bundle": "^5.1",
-    "payum/payum-bundle": "^2.1",
-    "php-http/guzzle6-adapter": "^2.0"
+    "payum/payum-bundle": "^2.5",
+    "php-http/guzzle6-adapter": "^2.0",
+    "friendsofsymfony/rest-bundle": "^3.5",
+    "doctrine/orm": "^2.15.1",
+    "doctrine/persistence" : "^3.2"
   },
   "require-dev": {
     "roave/security-advisories": "dev-latest"

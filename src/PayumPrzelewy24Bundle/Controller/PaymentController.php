@@ -1,32 +1,30 @@
 <?php
 
-namespace arteneo\PayumPrzelewy24Bundle\Controller;
+namespace pelsedu\PayumPrzelewy24Bundle\Controller;
 
-use arteneo\PayumPrzelewy24Bundle\Entity\Payment;
+use pelsedu\PayumPrzelewy24Bundle\Entity\Payment;
 use FOS\RestBundle\Controller\Annotations\Route;
 use Payum\Bundle\PayumBundle\Controller\PayumController;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
+ * @TODO: Move it out, useless junk ;)
  * @Route("/payment")
  */
 class PaymentController extends PayumController
 {
     /**
      * @Route("/create", name="create_payment")
-     * @Method("GET")
-     *
-     * @return \Symfony\Component\HttpFoundation\RedirectResponse
      */
-    public function createPayment(Request $request)
+    public function createPayment(Request $request): RedirectResponse
     {
         $storage = $this->get('payum')->getStorage(Payment::class);
 
         /** @var Payment $payment */
         $payment = $storage->create();
-        $payment->setNumber(uniqid());
+        $payment->setNumber(uniqid('', true));
         $payment->setCurrencyCode('PLN');
         $payment->setTotalAmount(100);
         $payment->setDescription('Description');
@@ -56,6 +54,7 @@ class PaymentController extends PayumController
      * @Route("/done", name="payment_done")
      *
      * @return Response
+     * @throws \Exception
      */
     public function captureDoneAction(Request $request)
     {

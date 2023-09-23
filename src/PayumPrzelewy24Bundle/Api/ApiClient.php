@@ -1,6 +1,6 @@
 <?php
 
-namespace arteneo\PayumPrzelewy24Bundle\Api;
+namespace pelsedu\PayumPrzelewy24Bundle\Api;
 
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ClientException;

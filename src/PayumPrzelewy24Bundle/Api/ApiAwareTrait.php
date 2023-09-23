@@ -1,16 +1,14 @@
 <?php
 
-namespace arteneo\PayumPrzelewy24Bundle\Api;
+namespace pelsedu\PayumPrzelewy24Bundle\Api;
 
 use Payum\Core\Exception\UnsupportedApiException;
 
 trait ApiAwareTrait
 {
+    protected ApiClient $api;
 
-    /** @var ApiClient */
-    protected $api;
-
-    public function setApi($api)
+    public function setApi($api): void
     {
         if ($api instanceof ApiClient) {
             $this->api = $api;

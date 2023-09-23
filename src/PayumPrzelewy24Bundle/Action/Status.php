@@ -1,8 +1,8 @@
 <?php
 
-namespace arteneo\PayumPrzelewy24Bundle\Action;
+namespace pelsedu\PayumPrzelewy24Bundle\Action;
 
-use arteneo\PayumPrzelewy24Bundle\Api\ApiClient;
+use pelsedu\PayumPrzelewy24Bundle\Api\ApiClient;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Model\PaymentInterface;

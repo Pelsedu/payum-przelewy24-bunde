@@ -1,10 +1,9 @@
 <?php
 
-namespace arteneo\PayumPrzelewy24Bundle\Entity;
+namespace pelsedu\PayumPrzelewy24Bundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Payum\Core\Model\Token;
-use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Table()

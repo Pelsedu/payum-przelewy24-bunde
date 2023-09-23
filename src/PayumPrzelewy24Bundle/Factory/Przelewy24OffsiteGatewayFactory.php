@@ -1,8 +1,8 @@
 <?php
 
-namespace arteneo\PayumPrzelewy24Bundle\Factory;
+namespace pelsedu\PayumPrzelewy24Bundle\Factory;
 
-use arteneo\PayumPrzelewy24Bundle\Api\ApiClient;
+use pelsedu\PayumPrzelewy24Bundle\Api\ApiClient;
 use GuzzleHttp\Client;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\GatewayFactory;
@@ -11,7 +11,7 @@ class Przelewy24OffsiteGatewayFactory extends GatewayFactory
 {
     protected function populateConfig(ArrayObject $config)
     {
-        if (false == $config['payum.api']) {
+        if (!$config['payum.api']) {
             $config['payum.default_options'] = [
                 'clientId' => null,
                 'clientSecret' => null,
