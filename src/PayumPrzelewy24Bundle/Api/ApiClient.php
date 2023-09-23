@@ -35,15 +35,15 @@ class ApiClient
     public function getStatusPaymentUrl()
     {
         return $this->parameters['sandbox'] ?
-        'https://sandbox.przelewy24.pl/api/v1/transaction/verify' :
+            'https://sandbox.przelewy24.pl/api/v1/transaction/verify' :
             'https://secure.przelewy24.pl/api/v1/transaction/verify';
     }
 
     public function getTransactionRedirect(string $token)
     {
         return $this->parameters['sandbox'] ?
-        'https://sandbox.przelewy24.pl/trnRequest/'.$token :
-        'https://secure.przelewy24.pl/trnRequest/'.$token;
+            'https://sandbox.przelewy24.pl/trnRequest/' . $token :
+            'https://secure.przelewy24.pl/trnRequest/' . $token;
     }
 
     public function getBasicAuth()
@@ -59,20 +59,20 @@ class ApiClient
         }
 
         if (isset($details['returnUrl'])) {
-            return $this->parameters['serviceDomain'].$details['returnUrl'];
+            return $this->parameters['serviceDomain'] . $details['returnUrl'];
         }
 
         if (isset($details['returnRoute']) && isset($this->parameters['router'])) {
             return $this->parameters['router']->generate($details['returnRoute'], ['payum_token' => $token->getHash()], UrlGeneratorInterface::ABSOLUTE_URL);
         }
 
-        return $this->parameters['serviceDomain'].'/';
+        return $this->parameters['serviceDomain'] . '/';
     }
 
     public function getStatusUrl(PaymentInterface $payment, TokenInterface $token)
     {
         if (isset($this->parameters['router'])) {
-            return $this->parameters['serviceDomain'].$this->parameters['router']->generate('payum_capture_do', ['payum_token' => $token->getHash()]);
+            return $this->parameters['serviceDomain'] . $this->parameters['router']->generate('payum_capture_do', ['payum_token' => $token->getHash()]);
         }
 
         return sprintf('%s/payment/capture/%s', $this->parameters['serviceDomain'], $token->getHash());
@@ -180,21 +180,21 @@ class ApiClient
 
     private function createHashForNotification(array $details)
     {
-        $hashString = '{"merchantId":'.$details['merchantId'].',"posId":'.$details['posId'].',"sessionId":"'.$details['sessionId'].'","amount":'.$details['amount'].',"originAmount":'.$details['originAmount'].',"currency":"'.$details['currency'].'","orderId":'.$details['orderId'].',"methodId":'.$details['methodId'].',"statement":"'.$details['statement'].'","crc":"'.$this->parameters['crc'].'"}';
+        $hashString = '{"merchantId":' . $details['merchantId'] . ',"posId":' . $details['posId'] . ',"sessionId":"' . $details['sessionId'] . '","amount":' . $details['amount'] . ',"originAmount":' . $details['originAmount'] . ',"currency":"' . $details['currency'] . '","orderId":' . $details['orderId'] . ',"methodId":' . $details['methodId'] . ',"statement":"' . $details['statement'] . '","crc":"' . $this->parameters['crc'] . '"}';
 
         return hash('sha384', $hashString);
     }
 
     private function createHashForPaymentStatus(array $details)
     {
-        $hashString = '{"sessionId":"'.$details['sessionId'].'","orderId":'.$details['orderId'].',"amount":'.$details['amount'].',"currency":"'.$details['currency'].'","crc":"'.$this->parameters['crc'].'"}';
+        $hashString = '{"sessionId":"' . $details['sessionId'] . '","orderId":' . $details['orderId'] . ',"amount":' . $details['amount'] . ',"currency":"' . $details['currency'] . '","crc":"' . $this->parameters['crc'] . '"}';
 
         return hash('sha384', $hashString);
     }
 
     private function createHashForRegisterTransaction(array $details)
     {
-        $hashString = '{"sessionId":"'.$details['sessionId'].'","merchantId":'.$this->parameters['clientId'].',"amount":'.$details['amount'].',"currency":"'.$details['currency'].'","crc":"'.$this->parameters['crc'].'"}';
+        $hashString = '{"sessionId":"' . $details['sessionId'] . '","merchantId":' . $this->parameters['clientId'] . ',"amount":' . $details['amount'] . ',"currency":"' . $details['currency'] . '","crc":"' . $this->parameters['crc'] . '"}';
 
         return hash('sha384', $hashString);
     }

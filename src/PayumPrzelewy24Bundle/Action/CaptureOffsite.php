@@ -40,7 +40,7 @@ class CaptureOffsite implements ApiAwareInterface, ActionInterface, GatewayAware
             $this->gateway->execute(new Notify($model));
         } else {
             $token = $this->api->registerTransaction($request->getFirstModel(), $request->getToken());
-            
+
             $url = $this->api->getTransactionRedirect($token);
 
             throw new HttpRedirect($url);

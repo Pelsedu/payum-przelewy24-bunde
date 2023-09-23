@@ -66,7 +66,7 @@ class PaymentController extends PayumController
         $model = $this->get('payum')->getStorage($identity->getClass())->find($identity);
 
         return new JsonResponse([
-           'status' => $model->getStatus(),
+            'status' => $model->getStatus(),
         ]);
     }
 }
